@@ -46,6 +46,15 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧰</text></svg>">
 </head>
 <body>
+    <!-- ===== サイドバー風 収益バナー（固定） ===== -->
+    <div class="monetization-bar">
+        <div class="container monetization-bar-inner">
+            <span class="monetization-text">☕ このツールが役に立ったらサポートをお願いします</span>
+            <a href="https://ko-fi.com/yourkofi" target="_blank" rel="noopener" class="btn btn-support">☕ Buy me a Coffee</a>
+            <a href="#premium" class="btn btn-outline-sm">🚀 プレミアム</a>
+        </div>
+    </div>
+
     <header class="header">
         <div class="container">
             <div class="header-inner">
@@ -55,7 +64,7 @@
         </div>
     </header>
 
-    <!-- 広告スロット -->
+    <!-- 広告スロット1 -->
     <div class="ad-banner">
         <div class="container">
             <ins class="adsbygoogle"
@@ -257,6 +266,28 @@ console.log("Hello!");
                 </div>
             </section>
 
+            <!-- ===== プレミアムセクション ===== -->
+            <section class="premium-section" id="premium">
+                <div class="premium-card">
+                    <div class="premium-badge">🚀 PREMIUM</div>
+                    <h2>DevToolBox API（近日公開）</h2>
+                    <p>これらのツールをAPIとしてあなたのアプリやワークフローに組み込めます。</p>
+                    <ul class="premium-features">
+                        <li>✅ JSON整形・検証 API</li>
+                        <li>✅ Diff API（LCSアルゴリズム）</li>
+                        <li>✅ Base64 / URL変換 API</li>
+                        <li>✅ Markdown → HTML 変換 API</li>
+                        <li>✅ レート制限解除（最大 10,000 req/day）</li>
+                        <li>✅ プライオリティサポート</li>
+                    </ul>
+                    <div class="premium-cta">
+                        <span class="premium-price">¥980 <small>/ 月</small></span>
+                        <a href="https://github.com/masayukiyamazaki0601/dev-toolbox/issues/new" class="btn btn-primary btn-lg">🔥 先行登録する</a>
+                    </div>
+                    <p class="premium-note">※ 先行登録いただいた方にはローンチ時に50%割引クーポンを配布</p>
+                </div>
+            </section>
+
             <!-- 広告スロット2 -->
             <div class="ad-banner ad-bottom">
                 <ins class="adsbygoogle"
@@ -276,6 +307,7 @@ console.log("Hello!");
             <p class="footer-links">
                 <a href="privacy.html">プライバシーポリシー</a>
                 <a href="https://github.com/masayukiyamazaki0601/dev-toolbox/issues/new">お問い合わせ</a>
+                <a href="https://ko-fi.com/yourkofi" target="_blank" rel="noopener">☕ サポート</a>
             </p>
         </div>
     </footer>
