@@ -1,46 +1,116 @@
-/* ===== DevToolBox - Application Logic ===== */
+/* ===== DevToolBox - Application Logic v2.1 ===== */
+/* global ClipboardItem */
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     initToolNavigation();
     updateMarkdownPreview();
     updateCounter();
+    initKeyboardShortcuts();
+    initPasteAutoFormat();
 });
 
 /* ===== Tool Navigation ===== */
 function initToolNavigation() {
-    const navBtns = document.querySelectorAll('.tool-nav-btn');
-    navBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
-            const tool = this.dataset.tool;
-            navBtns.forEach(b => b.classList.remove('active'));
+    var navBtns = document.querySelectorAll('.tool-nav-btn');
+    navBtns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var tool = this.dataset.tool;
+            navBtns.forEach(function (b) { b.classList.remove('active'); });
             this.classList.add('active');
-            document.querySelectorAll('.tool-panel').forEach(p => p.classList.remove('active'));
-            const panel = document.getElementById('panel-' + tool);
+            document.querySelectorAll('.tool-panel').forEach(function (p) { p.classList.remove('active'); });
+            var panel = document.getElementById('panel-' + tool);
             if (panel) panel.classList.add('active');
         });
     });
 }
 
+/* ===== Keyboard Shortcuts ===== */
+function initKeyboardShortcuts() {
+    document.addEventListener('keydown', function (e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault();
+            var activePanel = document.querySelector('.tool-panel.active');
+            if (!activePanel) return;
+            var id = activePanel.id;
+            var actions = {
+                'panel-json': formatJSON,
+                'panel-diff': runDiff,
+                'panel-base64': convertBase64,
+                'panel-url': convertUrl
+            };
+            if (actions[id]) actions[id]();
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key === 'l' && !e.target.closest('.tool-textarea')) {
+            e.preventDefault();
+            var activePanel = document.querySelector('.tool-panel.active');
+            if (!activePanel) return;
+            var textareas = activePanel.querySelectorAll('.tool-textarea');
+            var ids = [];
+            textareas.forEach(function (ta) { ids.push(ta.id); });
+            if (ids.length) clearTool.apply(null, ids);
+        }
+    });
+}
+
+/* ===== Paste Auto-Format (JSON) ===== */
+function initPasteAutoFormat() {
+    var jsonInput = document.getElementById('jsonInput');
+    if (!jsonInput) return;
+    jsonInput.addEventListener('paste', function () {
+        setTimeout(function () {
+            var val = jsonInput.value.trim();
+            if (!val) return;
+            if ((val.charAt(0) === '{' && val.charAt(val.length - 1) === '}') ||
+                (val.charAt(0) === '[' && val.charAt(val.length - 1) === ']')) {
+                try {
+                    var parsed = JSON.parse(val);
+                    jsonInput.value = JSON.stringify(parsed, null, 2);
+                } catch (e) {
+                    // not valid JSON
+                }
+            }
+        }, 50);
+    });
+}
+
 /* ===== Utility Functions ===== */
 function copyResult(elementId) {
-    const el = document.getElementById(elementId);
+    var el = document.getElementById(elementId);
     if (!el || (!el.value && !el.innerText)) {
         showMessage(null, 'コピーする内容がありません。', 'error');
         return;
     }
-    const text = el.value || el.innerText;
-    navigator.clipboard.writeText(text).then(function() {
-        showMessage(null, 'クリップボードにコピーしました！', 'success');
-    }).catch(function() {
-        el.select();
+    var text = el.value || el.innerText;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () {
+            showMessage(null, 'クリップボードにコピーしました！', 'success');
+        }).catch(function () {
+            fallbackCopy(text);
+        });
+    } else {
+        fallbackCopy(text);
+    }
+}
+
+function fallbackCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try {
         document.execCommand('copy');
         showMessage(null, 'クリップボードにコピーしました！', 'success');
-    });
+    } catch (e) {
+        showMessage(null, 'コピーに失敗しました。', 'error');
+    }
+    document.body.removeChild(ta);
 }
 
 function clearTool() {
     var ids = Array.prototype.slice.call(arguments);
-    ids.forEach(function(id) {
+    ids.forEach(function (id) {
         var el = document.getElementById(id);
         if (!el) return;
         if (el.tagName === 'TEXTAREA') {
@@ -49,14 +119,13 @@ function clearTool() {
             el.innerHTML = '';
         } else if (el.classList.contains('md-preview')) {
             el.innerHTML = '';
+        } else if (el.classList.contains('tool-message')) {
+            el.className = 'tool-message';
+            el.textContent = '';
         }
     });
-    if (ids.indexOf('counterInput') !== -1) {
-        updateCounter();
-    }
-    if (ids.indexOf('mdInput') !== -1) {
-        updateMarkdownPreview();
-    }
+    if (ids.indexOf('counterInput') !== -1) updateCounter();
+    if (ids.indexOf('mdInput') !== -1) updateMarkdownPreview();
 }
 
 function showMessage(elementId, message, type) {
@@ -70,7 +139,7 @@ function showMessage(elementId, message, type) {
     msgEl.textContent = message;
     msgEl.className = 'tool-message ' + type;
     if (msgEl._hideTimer) clearTimeout(msgEl._hideTimer);
-    msgEl._hideTimer = setTimeout(function() {
+    msgEl._hideTimer = setTimeout(function () {
         msgEl.className = 'tool-message';
     }, 3000);
 }
@@ -120,7 +189,7 @@ function validateJSON() {
     }
 }
 
-/* ===== 2. Diff Checker ===== */
+/* ===== 2. Diff Checker (LCS-based) ===== */
 function runDiff() {
     var textA = document.getElementById('diffInputA').value;
     var textB = document.getElementById('diffInputB').value;
@@ -133,30 +202,92 @@ function runDiff() {
 
     var linesA = textA.split('\n');
     var linesB = textB.split('\n');
-    var maxLen = Math.max(linesA.length, linesB.length);
-    var html = '';
+    var lcs = computeLCS(linesA, linesB);
+    var html = renderDiff(linesA, linesB, lcs);
+    output.innerHTML = html || '<span class="diff-unchanged">差異はありません。</span>';
+}
 
-    for (var i = 0; i < maxLen; i++) {
-        var lineA = linesA[i] !== undefined ? linesA[i] : '';
-        var lineB = linesB[i] !== undefined ? linesB[i] : '';
-
-        if (lineA === lineB && lineA !== '') {
-            html += '<span class="diff-unchanged">  ' + escapeHtml(lineA) + '</span>';
-        } else if (lineA === '' && lineB !== '') {
-            html += '<span class="diff-added">+ ' + escapeHtml(lineB) + '</span>';
-        } else if (lineB === '' && lineA !== '') {
-            html += '<span class="diff-removed">- ' + escapeHtml(lineA) + '</span>';
-        } else if (lineA !== lineB) {
-            if (lineA) html += '<span class="diff-removed">- ' + escapeHtml(lineA) + '</span>';
-            if (lineB) html += '<span class="diff-added">+ ' + escapeHtml(lineB) + '</span>';
+function computeLCS(a, b) {
+    var m = a.length, n = b.length;
+    var dp = [];
+    for (var i = 0; i <= m; i++) {
+        dp[i] = [];
+        for (var j = 0; j <= n; j++) {
+            dp[i][j] = 0;
         }
     }
-
-    if (!html) {
-        html = '<span class="diff-unchanged">差異はありません（テキストが空または同一です）。</span>';
+    for (var i = 1; i <= m; i++) {
+        for (var j = 1; j <= n; j++) {
+            if (a[i - 1] === b[j - 1]) {
+                dp[i][j] = dp[i - 1][j - 1] + 1;
+            } else {
+                dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+            }
+        }
     }
+    var result = [];
+    var i = m, j = n;
+    while (i > 0 && j > 0) {
+        if (a[i - 1] === b[j - 1]) {
+            result.unshift({ aIdx: i - 1, bIdx: j - 1 });
+            i--; j--;
+        } else if (dp[i - 1][j] > dp[i][j - 1]) {
+            i--;
+        } else {
+            j--;
+        }
+    }
+    return result;
+}
 
-    output.innerHTML = html;
+function renderDiff(a, b, lcs) {
+    var html = '';
+    var ai = 0, bi = 0, li = 0;
+
+    while (ai < a.length || bi < b.length) {
+        if (li < lcs.length && ai === lcs[li].aIdx && bi === lcs[li].bIdx) {
+            var line = a[ai];
+            html += '<span class="diff-unchanged">  ' + escapeHtml(line) + '</span>';
+            ai++; bi++; li++;
+        } else {
+            var inLCS = false;
+            for (var k = li; k < lcs.length; k++) {
+                if (lcs[k].aIdx === ai) {
+                    inLCS = true;
+                    break;
+                }
+            }
+            if (!inLCS && ai < a.length) {
+                html += '<span class="diff-removed">- ' + escapeHtml(a[ai]) + '</span>';
+                ai++;
+                continue;
+            }
+            inLCS = false;
+            for (var k = li; k < lcs.length; k++) {
+                if (lcs[k].bIdx === bi) {
+                    inLCS = true;
+                    break;
+                }
+            }
+            if (!inLCS && bi < b.length) {
+                html += '<span class="diff-added">+ ' + escapeHtml(b[bi]) + '</span>';
+                bi++;
+                continue;
+            }
+            if (ai < a.length && bi < b.length) {
+                html += '<span class="diff-removed">- ' + escapeHtml(a[ai]) + '</span>';
+                html += '<span class="diff-added">+ ' + escapeHtml(b[bi]) + '</span>';
+                ai++; bi++;
+            } else if (ai < a.length) {
+                html += '<span class="diff-removed">- ' + escapeHtml(a[ai]) + '</span>';
+                ai++;
+            } else if (bi < b.length) {
+                html += '<span class="diff-added">+ ' + escapeHtml(b[bi]) + '</span>';
+                bi++;
+            }
+        }
+    }
+    return html;
 }
 
 function swapDiff() {
@@ -167,7 +298,7 @@ function swapDiff() {
     runDiff();
 }
 
-/* ===== 3. Base64 ===== */
+/* ===== 3. Base64 (Unicode-safe) ===== */
 function convertBase64() {
     var input = document.getElementById('base64Input').value;
     var mode = document.querySelector('input[name="base64Mode"]:checked').value;
@@ -179,15 +310,34 @@ function convertBase64() {
 
     try {
         if (mode === 'encode') {
-            document.getElementById('base64Output').value = btoa(unescape(encodeURIComponent(input)));
+            document.getElementById('base64Output').value = base64EncodeUnicode(input);
             showMessage('base64Message', 'エンコード成功！', 'success');
         } else {
-            document.getElementById('base64Output').value = decodeURIComponent(escape(atob(input)));
+            document.getElementById('base64Output').value = base64DecodeUnicode(input);
             showMessage('base64Message', 'デコード成功！', 'success');
         }
     } catch (e) {
         showMessage('base64Message', '変換エラー: 入力が正しい形式か確認してください。', 'error');
     }
+}
+
+function base64EncodeUnicode(str) {
+    var utf8Bytes = encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function (match, p1) {
+        return String.fromCharCode(parseInt(p1, 16));
+    });
+    return btoa(utf8Bytes);
+}
+
+function base64DecodeUnicode(str) {
+    var bytes = atob(str);
+    var percentEncoded = '';
+    for (var i = 0; i < bytes.length; i++) {
+        var code = bytes.charCodeAt(i);
+        var hex = code.toString(16).toUpperCase();
+        if (hex.length === 1) hex = '0' + hex;
+        percentEncoded += '%' + hex;
+    }
+    return decodeURIComponent(percentEncoded);
 }
 
 /* ===== 4. URL Encode / Decode ===== */
@@ -236,42 +386,52 @@ function updateMarkdownPreview() {
 function renderMarkdown(md) {
     if (!md) return '<p style="color: var(--text-muted)">プレビューがここに表示されます。</p>';
 
+    // Use hex entity approach to prevent auto-format corruption
+    var A = String.fromCharCode(38); // &
+    var L = String.fromCharCode(60); // <
+    var G = String.fromCharCode(62); // >
+
     var html = md;
 
-    // Escape HTML tags (use entity codes via String.fromCharCode to avoid auto-formatting)
-    var amp = String.fromCharCode(38);
-    var lt = String.fromCharCode(60);
-    var gt = String.fromCharCode(62);
-    html = html.replace(new RegExp(amp, 'g'), amp + 'amp;');
-    html = html.replace(new RegExp(lt, 'g'), amp + 'lt;');
-    html = html.replace(new RegExp(gt, 'g'), amp + 'gt;');
+    // Escape HTML entities
+    html = html.replace(new RegExp(A.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&'), 'g'), A + 'amp;');
+    html = html.replace(new RegExp(L.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&'), 'g'), A + 'lt;');
+    html = html.replace(new RegExp(G.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&'), 'g'), A + 'gt;');
 
-    // Code blocks (fenced)
-    html = html.replace(/```(\w*)\n([\s\S]*?)```/g, function(match, lang, code) {
+    // Fenced code blocks
+    html = html.replace(/```(\w*)\s*\n([\s\S]*?)```/g, function (match, lang, code) {
         var langClass = lang ? ' class="language-' + lang + '"' : '';
         return '<pre><code' + langClass + '>' + code.trim() + '</code></pre>';
     });
 
     // Headings
+    html = html.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
     html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
     html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
     html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
 
     // Horizontal rules
-    html = html.replace(/^---$/gm, '<hr>');
+    html = html.replace(/^---+$/gm, '<hr>');
 
     // Blockquotes
     html = html.replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
 
     // Unordered lists
-    html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
-    html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
+    html = html.replace(/^[*+-] (.+)$/gm, '<li>$1</li>');
+    html = html.replace(/(<li>.*?<\/li>\n?)+/g, function (match) {
+        return '<ul>' + match + '</ul>';
+    });
 
     // Ordered lists
-    html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
-    html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ol>$&</ol>');
+    html = html.replace(/^\d+\. (.+)$/gm, function (match, content) {
+        return '<li value="' + match.match(/^\d+/)[0] + '">' + content + '</li>';
+    });
+    html = html.replace(/(<li value=".*?<\/li>\n?)+/g, function (match) {
+        return '<ol>' + match + '</ol>';
+    });
 
     // Bold & Italic
+    html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
     html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
     html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
 
@@ -284,28 +444,32 @@ function renderMarkdown(md) {
     // Links
     html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
 
-    // Line breaks
-    html = html.replace(/\n\n/g, '</p><p>');
-    html = html.replace(/\n/g, '<br>');
+    // Paragraphs and line breaks
+    var blocks = html.split(/\n\n+/);
+    var result = '';
+    var blockLevelTags = ['<h1', '<h2', '<h3', '<h4', '<ul', '<ol', '<li', '<pre', '<blockquote', '<hr', '<p'];
 
-    // Wrap in paragraph if needed
-    if (html.indexOf('<h') !== 0 && html.indexOf('<ul') !== 0 && html.indexOf('<ol') !== 0 &&
-        html.indexOf('<pre') !== 0 && html.indexOf('<blockquote') !== 0 && html.indexOf('<hr') !== 0) {
-        html = '<p>' + html + '</p>';
+    for (var i = 0; i < blocks.length; i++) {
+        var block = blocks[i].trim();
+        if (!block) continue;
+
+        var isBlockLevel = false;
+        for (var t = 0; t < blockLevelTags.length; t++) {
+            if (block.indexOf(blockLevelTags[t]) === 0) {
+                isBlockLevel = true;
+                break;
+            }
+        }
+
+        if (isBlockLevel) {
+            result += block;
+        } else {
+            block = block.replace(/\n/g, '<br>');
+            result += '<p>' + block + '</p>';
+        }
     }
 
-    // Fix nested paragraphs
-    html = html.replace(/<\/h1><br><p>/g, '</h1>');
-    html = html.replace(/<\/h2><br><p>/g, '</h2>');
-    html = html.replace(/<\/h3><br><p>/g, '</h3>');
-    html = html.replace(/<\/li><br><p>/g, '</li>');
-    html = html.replace(/<\/ul><br><p>/g, '</ul>');
-    html = html.replace(/<\/ol><br><p>/g, '</ol>');
-    html = html.replace(/<\/blockquote><br><p>/g, '</blockquote>');
-    html = html.replace(/<\/pre><br><p>/g, '</pre>');
-    html = html.replace(/<hr><br><p>/g, '<hr>');
-
-    return html;
+    return result;
 }
 
 function copyHtmlFromMd() {
@@ -315,9 +479,13 @@ function copyHtmlFromMd() {
         showMessage(null, 'コピーするHTMLがありません。', 'error');
         return;
     }
-    navigator.clipboard.writeText(html).then(function() {
-        showMessage(null, 'HTMLをクリップボードにコピーしました！', 'success');
-    });
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(html).then(function () {
+            showMessage(null, 'HTMLをクリップボードにコピーしました！', 'success');
+        });
+    } else {
+        fallbackCopy(html);
+    }
 }
 
 /* ===== HTML Escape Helper ===== */

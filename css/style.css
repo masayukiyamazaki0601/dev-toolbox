@@ -511,3 +511,53 @@ body {
     background: rgba(79, 140, 247, 0.3);
     color: #fff;
 }
+
+/* ===== Print Styles ===== */
+@media print {
+    body {
+        background: #fff;
+        color: #000;
+    }
+    .header {
+        background: #f5f5f5;
+        border-bottom: 1px solid #ddd;
+    }
+    .logo {
+        -webkit-text-fill-color: initial;
+        color: #222;
+    }
+    .ad-banner,
+    .ad-bottom,
+    .btn,
+    .tool-nav,
+    .footer {
+        display: none !important;
+    }
+    .tool-panel {
+        display: block !important;
+        page-break-inside: avoid;
+    }
+    .tool-panel:not(.active) {
+        display: none !important;
+    }
+    .tool-textarea,
+    .diff-output,
+    .md-preview {
+        border: 1px solid #ccc;
+        background: #fafafa;
+        color: #000;
+    }
+    .tool-layout {
+        grid-template-columns: 1fr;
+    }
+    .counter-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .stat-card {
+        border: 1px solid #ddd;
+        background: #f9f9f9;
+    }
+    .stat-value {
+        color: #2563eb;
+    }
+}
