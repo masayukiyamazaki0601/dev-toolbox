@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevToolBox - 開発者向け無料オンラインツール</title>
+    <meta name="description" content="JSONフォーマッター、Diffチェッカー、Base64変換、URLエンコード、文字数カウンター、Markdownプレビューアー。開発者のための無料オンラインツール集。">
+    <meta name="keywords" content="JSONフォーマッター, diffチェッカー, Base64エンコード, URLエンコード, 文字数カウンター, Markdownプレビュー, 開発ツール">
+    <!-- Open Graph -->
+    <meta property="og:title" content="DevToolBox - 開発者向け無料オンラインツール">
+    <meta property="og:description" content="開発者のための6つの無料オンラインツール。JSON整形、差分チェック、Base64変換など。">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    <!-- Google AdSense -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-xxxxxxxxxxxxxxxx" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧰</text></svg>">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-inner">
+                <h1 class="logo">🧰 DevToolBox</h1>
+                <p class="subtitle">開発者のための無料オンラインツール</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- 広告スロット -->
+    <div class="ad-banner">
+        <div class="container">
+            <ins class="adsbygoogle"
+                 style="display:block"
+                 data-ad-client="ca-pub-xxxxxxxxxxxxxxxx"
+                 data-ad-slot="1234567890"
+                 data-ad-format="auto"
+                 data-full-width-responsive="true"></ins>
+            <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+        </div>
+    </div>
+
+    <main class="main">
+        <div class="container">
+            <!-- ツールナビゲーション -->
+            <nav class="tool-nav" id="toolNav">
+                <button class="tool-nav-btn active" data-tool="json">JSON Formatter</button>
+                <button class="tool-nav-btn" data-tool="diff">Diff Checker</button>
+                <button class="tool-nav-btn" data-tool="base64">Base64</button>
+                <button class="tool-nav-btn" data-tool="url">URL Encode</button>
+                <button class="tool-nav-btn" data-tool="counter">文字数カウンター</button>
+                <button class="tool-nav-btn" data-tool="markdown">Markdown</button>
+            </nav>
+
+            <!-- JSON Formatter -->
+            <section class="tool-panel active" id="panel-json">
+                <h2>JSON Formatter</h2>
+                <p class="tool-desc">JSONを整形・圧縮・検証します。</p>
+                <div class="tool-layout">
+                    <div class="tool-input-area">
+                        <textarea id="jsonInput" class="tool-textarea" placeholder="JSONをここにペースト..." spellcheck="false"></textarea>
+                    </div>
+                    <div class="tool-output-area">
+                        <textarea id="jsonOutput" class="tool-textarea" placeholder="整形結果" readonly spellcheck="false"></textarea>
+                    </div>
+                </div>
+                <div class="tool-actions">
+                    <button class="btn btn-primary" onclick="formatJSON()">✨ 整形</button>
+                    <button class="btn btn-secondary" onclick="minifyJSON()">📦 圧縮</button>
+                    <button class="btn btn-outline" onclick="validateJSON()">✅ 検証</button>
+                    <button class="btn btn-outline" onclick="copyResult('jsonOutput')">📋 コピー</button>
+                    <button class="btn btn-danger" onclick="clearTool('jsonInput','jsonOutput')">🗑 クリア</button>
+                </div>
+                <div id="jsonMessage" class="tool-message"></div>
+            </section>
+
+            <!-- Diff Checker -->
+            <section class="tool-panel" id="panel-diff">
+                <h2>Diff Checker</h2>
+                <p class="tool-desc">2つのテキストの差分をチェックします。</p>
+                <div class="tool-layout two-col">
+                    <div class="tool-input-area">
+                        <label class="input-label">テキストA（オリジナル）</label>
+                        <textarea id="diffInputA" class="tool-textarea" placeholder="元のテキスト..." spellcheck="false"></textarea>
+                    </div>
+                    <div class="tool-input-area">
+                        <label class="input-label">テキストB（変更後）</label>
+                        <textarea id="diffInputB" class="tool-textarea" placeholder="変更後のテキスト..." spellcheck="false"></textarea>
+                    </div>
+                </div>
+                <div class="tool-actions">
+                    <button class="btn btn-primary" onclick="runDiff()">🔍 差分を表示</button>
+                    <button class="btn btn-outline" onclick="swapDiff()">🔄 入れ替え</button>
+                    <button class="btn btn-danger" onclick="clearTool('diffInputA','diffInputB','diffOutput')">🗑 クリア</button>
+                </div>
+                <div class="tool-output-area">
+                    <div id="diffOutput" class="diff-output"></div>
+                </div>
+            </section>
+
+            <!-- Base64 -->
+            <section class="tool-panel" id="panel-base64">
+                <h2>Base64 エンコード / デコード</h2>
+                <p class="tool-desc">テキストをBase64に変換、またはBase64からデコードします。</p>
+                <div class="tool-options">
+                    <label class="radio-label">
+                        <input type="radio" name="base64Mode" value="encode" checked> エンコード
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="base64Mode" value="decode"> デコード
+                    </label>
+                </div>
+                <div class="tool-layout">
+                    <div class="tool-input-area">
+                        <textarea id="base64Input" class="tool-textarea" placeholder="変換するテキスト..." spellcheck="false"></textarea>
+                    </div>
+                    <div class="tool-output-area">
+                        <textarea id="base64Output" class="tool-textarea" placeholder="変換結果" readonly spellcheck="false"></textarea>
+                    </div>
+                </div>
+                <div class="tool-actions">
+                    <button class="btn btn-primary" onclick="convertBase64()">🔄 変換</button>
+                    <button class="btn btn-outline" onclick="copyResult('base64Output')">📋 コピー</button>
+                    <button class="btn btn-danger" onclick="clearTool('base64Input','base64Output')">🗑 クリア</button>
+                </div>
+                <div id="base64Message" class="tool-message"></div>
+            </section>
+
+            <!-- URL Encode/Decode -->
+            <section class="tool-panel" id="panel-url">
+                <h2>URL エンコード / デコード</h2>
+                <p class="tool-desc">URLをエンコード・デコードします。</p>
+                <div class="tool-options">
+                    <label class="radio-label">
+                        <input type="radio" name="urlMode" value="encode" checked> エンコード
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="urlMode" value="decode"> デコード
+                    </label>
+                </div>
+                <div class="tool-layout">
+                    <div class="tool-input-area">
+                        <textarea id="urlInput" class="tool-textarea" placeholder="変換するテキスト..." spellcheck="false"></textarea>
+                    </div>
+                    <div class="tool-output-area">
+                        <textarea id="urlOutput" class="tool-textarea" placeholder="変換結果" readonly spellcheck="false"></textarea>
+                    </div>
+                </div>
+                <div class="tool-actions">
+                    <button class="btn btn-primary" onclick="convertUrl()">🔄 変換</button>
+                    <button class="btn btn-outline" onclick="copyResult('urlOutput')">📋 コピー</button>
+                    <button class="btn btn-danger" onclick="clearTool('urlInput','urlOutput')">🗑 クリア</button>
+                </div>
+            </section>
+
+            <!-- 文字数カウンター -->
+            <section class="tool-panel" id="panel-counter">
+                <h2>文字数カウンター</h2>
+                <p class="tool-desc">テキストの文字数・バイト数・単語数をカウントします。</p>
+                <div class="tool-input-area">
+                    <textarea id="counterInput" class="tool-textarea" placeholder="カウントするテキストを入力..." oninput="updateCounter()"></textarea>
+                </div>
+                <div class="counter-stats">
+                    <div class="stat-card">
+                        <span class="stat-value" id="charCount">0</span>
+                        <span class="stat-label">文字数</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="byteCount">0</span>
+                        <span class="stat-label">バイト数 (UTF-8)</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="wordCount">0</span>
+                        <span class="stat-label">単語数</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="lineCount">0</span>
+                        <span class="stat-label">行数</span>
+                    </div>
+                </div>
+                <div class="tool-actions">
+                    <button class="btn btn-danger" onclick="clearTool('counterInput')">🗑 クリア</button>
+                </div>
+            </section>
+
+            <!-- Markdown Preview -->
+            <section class="tool-panel" id="panel-markdown">
+                <h2>Markdown プレビューアー</h2>
+                <p class="tool-desc">Markdownをリアルタイムでプレビューします。</p>
+                <div class="tool-layout">
+                    <div class="tool-input-area">
+                        <label class="input-label">Markdown入力</label>
+                        <textarea id="mdInput" class="tool-textarea" placeholder="Markdownを入力..." oninput="updateMarkdownPreview()" spellcheck="false"># Hello World
+
+## 見出し
+
+- リスト項目1
+- リスト項目2
+
+**太字** や *斜体* も使えます。
+
+```js
+console.log("Hello!");
+```</textarea>
+                    </div>
+                    <div class="tool-output-area">
+                        <label class="input-label">プレビュー</label>
+                        <div id="mdPreview" class="md-preview"></div>
+                    </div>
+                </div>
+                <div class="tool-actions">
+                    <button class="btn btn-outline" onclick="copyHtmlFromMd()">📋 HTMLをコピー</button>
+                    <button class="btn btn-danger" onclick="clearTool('mdInput'); setTimeout(updateMarkdownPreview, 10)">🗑 クリア</button>
+                </div>
+            </section>
+
+            <!-- 広告スロット2 -->
+            <div class="ad-banner ad-bottom">
+                <ins class="adsbygoogle"
+                     style="display:block"
+                     data-ad-client="ca-pub-xxxxxxxxxxxxxxxx"
+                     data-ad-slot="9876543210"
+                     data-ad-format="auto"
+                     data-full-width-responsive="true"></ins>
+                <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2026 DevToolBox. Free Online Developer Tools.</p>
+            <p class="footer-links">
+                <a href="#">プライバシーポリシー</a>
+                <a href="#">お問い合わせ</a>
+            </p>
+        </div>
+    </footer>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
